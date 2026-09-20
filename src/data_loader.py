@@ -145,14 +145,18 @@ def load_raw_csv(nrows: int | None = None, verbose: bool = True) -> pd.DataFrame
     path = find_raw_csv(verbose=verbose)
 
     dtype_map = {
-        COL_SENDER: "string",
-        COL_RECEIVER: "string",
-        COL_PAY_CUR: "string",
-        COL_REC_CUR: "string",
-        COL_SENDER_LOC: "string",
-        COL_RECEIVER_LOC: "string",
-        COL_PAY_TYPE: "string",
-        COL_LAUND_TYPE: "string",
+        # КЛЮЧЕВОЙ МОМЕНТ: читаем повторяющиеся колонки СРАЗУ как category.
+        # Если сначала прочитать как строки, а потом делать astype("category"),
+        # в памяти одновременно живут и миллионы строк, и их копия в кодах —
+        # на 9.5 млн строк это +1-1.5 ГБ и риск нехватки памяти.
+        COL_SENDER: "category",
+        COL_RECEIVER: "category",
+        COL_PAY_CUR: "category",
+        COL_REC_CUR: "category",
+        COL_SENDER_LOC: "category",
+        COL_RECEIVER_LOC: "category",
+        COL_PAY_TYPE: "category",
+        COL_LAUND_TYPE: "category",
         COL_AMOUNT: "float32",
         COL_TARGET: "int8",
         # Time и Date читаем как строки — разбирать будем отдельной функцией
@@ -291,6 +295,10 @@ def add_time_features(df: pd.DataFrame, verbose: bool = True) -> pd.DataFrame:
 
         df["hour"] = hours
         df["minute"] = minutes
+        # Дальше колонка Time нам не нужна: время уже разложено на hour/minute/txn_ts.
+        # Удаляем её сразу: 9.5 млн Python-строк съедают ~600 МБ и больше ни на что
+        # не влияют (все временные расчёты идут по txn_ts / hour / minute).
+        df = df.drop(columns=[COL_TIME])
         # Ночное окно 00:00–05:59 — классический «красный флаг» в правилах мониторинга.
         df["is_night"] = df["hour"].between(0, 5).astype("int8")
 

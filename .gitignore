@@ -225,3 +225,8 @@ data/features/
 .ipynb_checkpoints/
 __pycache__/
 .env
+# Результаты прогонов (графики и авто-сводка) перезаписываются локально при
+# каждом запуске ноутбуков — в git они не нужны. В git лежит только эталонный
+# прогон на синтетике: reports/reference_run_synthetic/
+reports/figures/
+reports/eda_findings.md

@@ -87,6 +87,25 @@ def rate_by_group(
     return grouped.sort_values(sort_by, ascending=ascending)
 
 
+def categories_equal(a: pd.Series, b: pd.Series) -> pd.Series:
+    """
+    Поэлементное сравнение двух колонок-категорий: True, где значения совпадают.
+
+    ПОЧЕМУ НЕ a.astype(str) != b.astype(str)?
+    На 9.5 млн строк astype(str) создаёт миллионы новых Python-строк — это
+    сотни мегабайт и заметное время. У колонок типа category уже есть числовые
+    коды, поэтому сравнить их можно БЕСПЛАТНО:
+        1) приводим обе колонки к общему списку категорий (union);
+        2) сравниваем коды (.cat.codes) — обычное векторное сравнение int8.
+    Если колонки не category (например, dtype string) — аккуратно падаем
+    обратно на строковое сравнение.
+    """
+    if isinstance(a.dtype, pd.CategoricalDtype) and isinstance(b.dtype, pd.CategoricalDtype):
+        cats = a.cat.categories.union(b.cat.categories)
+        return a.cat.set_categories(cats).cat.codes == b.cat.set_categories(cats).cat.codes
+    return a.astype(str) == b.astype(str)
+
+
 def two_proportion_ztest(x1: int, n1: int, x2: int, n2: int) -> tuple[float, float]:
     """
     Двусторонний z-тест для двух долей. Возвращает (z, p_value).
