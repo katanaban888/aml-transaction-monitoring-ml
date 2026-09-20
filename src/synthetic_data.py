@@ -38,6 +38,7 @@ import argparse
 from pathlib import Path
 
 import numpy as np
+import gc
 import pandas as pd
 
 from src.data_loader import RAW_DIR, RAW_COLUMNS
@@ -113,8 +114,18 @@ HOUR_W = np.array([
 ])
 HOUR_W = HOUR_W / HOUR_W.sum()
 
+# Структура реальной платёжной сети: счёт платит в основном ОДНИМ И ТЕМ ЖЕ
+# контрагентам (магазины, аренда, зарплата, свои счета), а не случайным людям.
+# Без этого граф получается случайно-плотным: у каждой вершины огромное
+# «циклическое ядро», и граф-признаки перестают что-либо разделять.
+N_COUNTERPARTIES = 12        # сколько «постоянных» контрагентов у счёта
+REPEAT_SHARE = 0.60          # какая доля переводов идёт постоянным контрагентам
+
 CROSS_BORDER_RATE = 0.30     # доля транзакций между разными странами
 CURRENCY_MISMATCH_RATE = 0.08
+
+_cp_rng = np.random.default_rng(7)
+CP_LUT = _cp_rng.integers(0, N_ACCOUNTS, size=(N_ACCOUNTS, N_COUNTERPARTIES))
 
 _TIME_LUT = np.array([f"{h:02d}:{m:02d}:{s:02d}"
                       for h in range(24) for m in range(60) for s in range(60)])
@@ -626,7 +637,11 @@ def _collect_illicit(rng) -> pd.DataFrame:
 def _normal_chunk(rng, n: int) -> pd.DataFrame:
     """Генерирует порцию ОБЫЧНЫХ (легальных) транзакций."""
     sender = rng.integers(0, N_ACCOUNTS, n)
-    receiver = rng.integers(0, N_ACCOUNTS, n)
+    random_receiver = rng.integers(0, N_ACCOUNTS, n)
+    # постоянные контрагенты: у каждого счёта свой небольшой «круг общения»
+    usual_receiver = CP_LUT[sender, rng.integers(0, N_COUNTERPARTIES, n)]
+    repeat = rng.random(n) < REPEAT_SHARE
+    receiver = np.where(repeat, usual_receiver, random_receiver)
     same = sender == receiver
     if same.any():
         receiver[same] = (receiver[same] + 1) % N_ACCOUNTS
@@ -688,19 +703,47 @@ def generate(n_rows: int = N_TOTAL, seed: int = 42, chunk: int = 1_000_000,
         print(f"[synthetic] всего строк: {n_rows:,} | отмываний: {len(illicit):,} "
               f"({len(illicit) / n_rows * 100:.4f}%) | обычных: {n_normal:,}")
 
+    # ВАЖНО: «грязные» транзакции НЕЛЬЗЯ дописывать в конец файла. Если это
+    # сделать, то любые операции, завязанные на порядок строк (head(n),
+    # разбиение «первые 80% / остальное», батчи при обучении), окажутся
+    # полностью «чистыми» или полностью «грязными» — модель выучит порядок
+    # строк, а не отмывание. Поэтому вкатываем illicit порциями внутрь потока
+    # и перемешиваем каждую порцию.
+    # Сначала прикидываем размеры порций обычных транзакций...
+    sizes, remaining = [], n_normal
+    while remaining > 0:
+        n = min(chunk, remaining)
+        sizes.append(n)
+        remaining -= n
+    n_chunks = len(sizes)
+    illicit = illicit.sample(frac=1.0, random_state=seed)      # сам блок тоже мешаем
+
+    # ...и распределяем «грязные» ПРОПОРЦИОНАЛЬНО размеру порции. Если делить
+    # поровну, последняя (неполная) порция окажется вдвое «грязнее» остальных,
+    # и в конце файла снова появится сгусток отмываний.
+    shares = np.round(np.array(sizes, dtype=float) / n_normal * len(illicit)).astype(int)
+    shares[-1] = len(illicit) - shares[:-1].sum()             # чтобы сумма сошлась точно
+    offs = np.concatenate(([0], np.cumsum(shares)))
+
     first = True
     written = 0
-    while written < n_normal:
+    for i in range(n_chunks):
         n = min(chunk, n_normal - written)
+        if n <= 0:
+            break
         part = _codes_to_frame(_normal_chunk(rng, n))
-        part.to_csv(out_path, mode="w" if first else "a", header=first, index=False)
+        ill_part = _codes_to_frame(illicit.iloc[offs[i]:offs[i + 1]])
+        # перемешиваем порцию: внутри неё «грязные» строки распределены случайно
+        combined = pd.concat([part, ill_part], ignore_index=True)
+        combined = combined.sample(frac=1.0, random_state=seed + i)
+        combined.to_csv(out_path, mode="w" if first else "a", header=first, index=False)
         first = False
         written += n
         if verbose:
-            print(f"  ... записано обычных транзакций: {written:,} / {n_normal:,}", end="\r")
-
-    illicit_out = _codes_to_frame(illicit)
-    illicit_out.to_csv(out_path, mode="a", header=False, index=False)
+            print(f"  ... записано транзакций: {written + len(ill_part):,} "
+                  f"/ {n_rows:,}", end="\r")
+        del part, ill_part, combined
+        gc.collect()
 
     if verbose:
         print(f"\n[synthetic] готово: {out_path} ({out_path.stat().st_size / 1e6:,.0f} MB)")

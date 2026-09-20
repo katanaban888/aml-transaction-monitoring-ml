@@ -1,0 +1,316 @@
+
+########## CELL 1 ##########
+PROJECT_ROOT: /home/user/aml-transaction-monitoring-ml
+pandas: 3.0.6
+[mem] peak RSS = 195 MB | сейчас 199868 MB
+
+########## CELL 2 ##########
+Рабочая выборка: 2,097,152 строк (row groups [3, 6] из 10) | память 118 MB
+Base rate: 0.1043% | positives: 2,188
+[time_split] train: 1,468,012 строк | 2022-01-01 .. 2022-09-13
+[time_split] val:   314,568 строк | 2022-09-13 .. 2022-11-07
+[time_split] test:  314,572 строк | 2022-11-07 .. 2022-12-31
+    train: отмывания = 1,528 (0.1041% при базовом 0.1043%)
+    val  : отмывания = 345 (0.1097% при базовом 0.1043%)
+    test : отмывания = 315 (0.1001% при базовом 0.1043%)
+
+Разбиение по периодам:
+         строк
+train  1468012
+test    314572
+val     314568
+[assert_no_leakage] OK: train заканчивается 2022-09-13 17:05:00, test начинается 2022-11-07 11:56:00
+[mem] peak RSS = 776 MB | сейчас 669404 MB
+
+########## CELL 5 ##########
+Память тетрадки перед сборкой: 685 MB
+Запускаю: /home/user/aml-transaction-monitoring-ml/venv/bin/python -m src.build_features --chunk-size 500000 --max-edges 200000 
+
+  ... обработано 6,500,000 / 9,504,852 строк | RSS 1,865 MB
+  ... обработано 7,000,000 / 9,504,852 строк | RSS 1,866 MB
+  ... обработано 7,500,000 / 9,504,852 строк | RSS 1,866 MB
+  ... обработано 8,000,000 / 9,504,852 строк | RSS 1,866 MB
+  ... обработано 8,500,000 / 9,504,852 строк | RSS 1,868 MB
+  ... обработано 9,000,000 / 9,504,852 строк | RSS 1,866 MB
+  ... обработано 9,500,000 / 9,504,852 строк | RSS 1,846 MB
+  ... обработано 9,504,852 / 9,504,852 строк | RSS 1,703 MB
+
+[features] ГОТОВО: /home/user/aml-transaction-monitoring-ml/data/features/features_full.parquet (932 MB), 62 признаков, 9,504,852 строк
+[build_features] Линейки сохранены в /home/user/aml-transaction-monitoring-ml/data/features
+
+[build_features] ГОТОВО: /home/user/aml-transaction-monitoring-ml/data/features/features_full.parquet (932 MB)
+[build_features] Пик памяти: 2,785 MB
+[mem] peak RSS = 776 MB | сейчас 654736 MB
+
+########## CELL 7 ##########
+Добавлены признаки. Память work: 168 MB
+                                count    mean     std    min     25%     50%     75%      max
+amount_log             2,097,152.0000  6.2102  1.4946 0.6931  5.1962  6.2062  7.2160  15.4204
+amount_pct_in_currency 2,097,152.0000 49.9868 28.8926 0.0000 24.9249 49.9500 74.9750 100.0000
+amount_near_threshold  2,097,152.0000  0.0042  0.0647 0.0000  0.0000  0.0000  0.0000   1.0000
+amount_above_threshold 2,097,152.0000  0.0229  0.1495 0.0000  0.0000  0.0000  0.0000   1.0000
+is_round_100           2,097,152.0000  0.0001  0.0097 0.0000  0.0000  0.0000  0.0000   1.0000
+is_cross_border        2,097,152.0000  0.2740  0.4460 0.0000  0.0000  0.0000  1.0000   1.0000
+is_currency_mismatch   2,097,152.0000  0.3124  0.4635 0.0000  0.0000  0.0000  1.0000   1.0000
+is_night               2,097,152.0000  0.0398  0.1955 0.0000  0.0000  0.0000  0.0000   1.0000
+is_weekend             2,097,152.0000  0.2878  0.4527 0.0000  0.0000  0.0000  1.0000   1.0000
+[mem] peak RSS = 936 MB | сейчас 899928 MB
+
+########## CELL 8 ##########
+                  признак  max_lift  min_lift    корзина_макс
+0  amount_pct_in_currency    4.3222    0.0000  (79.98, 100.0]
+1              amount_log    4.3167    0.0000  (7.466, 15.42]
+[mem] peak RSS = 936 MB | сейчас 899928 MB
+
+########## CELL 10 ##########
+Профилей счетов: 120,000
+                                    mean         50%            max
+sender_txn_count                 12.2334     12.0000        31.0000
+sender_median_amount            582.3048    502.1200    14,309.9551
+sender_mean_amount            1,616.2488  1,209.9383   623,124.4375
+sender_std_amount             2,856.3554  1,628.7493 1,759,383.0342
+sender_max_amount             9,757.4727  5,352.7600 4,977,374.0000
+sender_total_amount          19,794.9476 14,783.4048 4,984,995.5000
+sender_n_receivers               10.3819     10.0000        24.0000
+sender_active_days               11.9437     12.0000        29.0000
+receiver_txn_count               12.2339     12.0000        33.0000
+receiver_median_amount          585.7880    500.6200    53,489.2109
+receiver_mean_amount          1,628.9957  1,210.7494   733,847.6250
+receiver_n_senders               10.3823     10.0000        27.0000
+receiver_total_amount        19,795.7724 14,680.3799 4,990,775.0000
+sender_txn_per_active_day         1.0243      1.0000         1.8571
+sender_share_above_threshold     20.2724     10.4008    16,055.6631
+                     признак  max_lift  min_lift        корзина_макс
+0    amount_to_sender_median    4.1408    0.0000  (3.369, 16055.663]
+1  amount_to_receiver_median    4.1317    0.0046   (3.37, 23573.988]
+2       amount_zscore_sender    4.1180    0.0160   (0.411, 3309.997]
+3       amount_to_sender_max    3.9122    0.0503   (0.384, 1244.085]
+4  sender_txn_per_active_day    1.8621    0.7920      (1.067, 1.857]
+5           sender_txn_count    1.3712    0.8473        (16.0, 31.0]
+6         receiver_txn_count    1.2579    0.8834        (17.0, 33.0]
+7         receiver_n_senders    1.2335    0.8729        (14.0, 27.0]
+8         sender_n_receivers    1.2251    0.8595        (13.0, 24.0]
+[mem] peak RSS = 936 MB | сейчас 727480 MB
+
+########## CELL 12 ##########
+Счетов в сравнении: 120,000
+Медиана профиля отличается более чем на 1%: 83.9% счетов
+Максимальное отличие: 1852.9%
+
+Среди счетов, работающих в test-периоде (111,092):
+  профиль отличается >10%: 60.9%
+
+ВЫВОД: разница есть у заметной доли счетов. В train она выглядит как
+«полезный сигнал», а в продакшене его просто не будет — модель потеряет
+качество именно на новых данных.
+[mem] peak RSS = 936 MB | сейчас 736520 MB
+
+########## CELL 14 ##########
+count совпадает: False
+sum   совпадает: False
+Если оба True — векторныйvelocity считает ровно то же, что и лобовой перебор,
+но за секунды вместо часов.
+[mem] peak RSS = 936 MB | сейчас 736520 MB
+
+########## CELL 15 ##########
+Velocity признаков: 10 | память: 84 MB
+                                    mean      50%            max
+vel_count_1h                      1.0032   1.0000         6.0000
+vel_amount_sum_1h             1,621.6711 496.6600 4,977,374.0000
+vel_count_6h                      1.0160   1.0000         8.0000
+vel_amount_sum_6h             1,644.3145 504.3200 4,977,374.0000
+vel_count_24h                     1.0482   1.0000         8.0000
+vel_amount_sum_24h            1,697.0820 524.7000 4,977,374.0000
+vel_count_168h                    1.3323   1.0000         9.0000
+vel_amount_sum_168h           2,158.6780 728.5100 4,977,374.0000
+vel_near_threshold_count_24h      0.0045   0.0000         4.0000
+vel_near_threshold_count_168h     0.0057   0.0000         4.0000
+                         признак  max_lift  min_lift           корзина_макс
+0              vel_amount_sum_6h    4.4973    0.0000   (1781.64, 4977374.0]
+1             vel_amount_sum_24h    4.4858    0.0000   (1854.23, 4977374.0]
+2              vel_amount_sum_1h    4.4675    0.0000  (1753.308, 4977374.0]
+3            vel_amount_sum_168h    4.4104    0.0000  (2510.168, 4977374.0]
+4                 vel_count_168h    3.9184    0.8635             (2.0, 9.0]
+5                   vel_count_1h    1.0000    1.0000           (0.999, 6.0]
+6                  vel_count_24h    1.0000    1.0000           (0.999, 8.0]
+7                   vel_count_6h    1.0000    1.0000           (0.999, 8.0]
+8   vel_near_threshold_count_24h    1.0000    1.0000          (-0.001, 4.0]
+9  vel_near_threshold_count_168h    1.0000    1.0000          (-0.001, 4.0]
+[mem] peak RSS = 978 MB | сейчас 952328 MB
+
+########## CELL 16 ##########
+[save_fig] figures/18_velocity_lift.png
+[mem] peak RSS = 1090 MB | сейчас 955888 MB
+
+########## CELL 18 ##########
+Пар в train: 1,245,826
+                         count       mean         std    min      25%      50%        75%            max
+pair_count      1,245,826.0000     1.1783      0.4727 1.0000   1.0000   1.0000     1.0000         7.0000
+pair_amount_sum 1,245,826.0000 1,906.6819 18,557.0117 1.0000 212.2400 605.6250 1,680.3101 4,977,374.0000
+            признак  max_lift  min_lift          корзина_макс
+0   pair_amount_sum    3.2153    0.0206  (1981.96, 4977374.0]
+1  pair_amount_mean    3.0439    0.0868  (1414.21, 4977374.0]
+2        pair_count    1.8160    0.3657            (2.0, 7.0]
+[mem] peak RSS = 1090 MB | сейчас 1095780 MB
+
+########## CELL 20 ##########
+Рёбер в графе train: 1,245,826
+  Sender_account Receiver_account  n_txn     amount_sum    amount_mean     amount_max             last_ts
+0    ACC_0079567      ACC_0050659      1 4,977,374.0000 4,977,374.0000 4,977,374.0000 2022-05-19 11:47:00
+1    ACC_0083025      ACC_0008225      1 4,800,518.0000 4,800,518.0000 4,800,518.0000 2022-01-23 13:28:00
+2    ACC_0011687      ACC_0117098      1 4,655,500.0000 4,655,500.0000 4,655,500.0000 2022-01-12 05:22:00
+3    ACC_0102379      ACC_0028790      1 4,493,909.5000 4,493,909.5000 4,493,909.5000 2022-03-04 11:23:00
+4    ACC_0112349      ACC_0075345      1 4,343,616.0000 4,343,616.0000 4,343,616.0000 2022-03-04 12:56:00
+[pagerank] сошёлся за 52 итераций
+PageRank посчитан для 120,000 счетов
+                        mean         50%            max
+g_out_degree         10.3819     10.0000        24.0000
+g_out_txn_sum        12.2334     12.0000        31.0000
+g_out_amount_sum 19,794.9492 14,783.4053 4,984,995.5000
+g_in_degree          10.3819     10.0000        27.0000
+g_in_txn_sum         12.2334     12.0000        33.0000
+g_in_amount_sum  19,794.9492 14,679.9448 4,990,775.5000
+g_total_degree       20.7638     21.0000        41.0000
+g_degree_ratio        1.0891      1.0000        17.0000
+g_pagerank            0.0000      0.0000         0.0000
+[mem] peak RSS = 1209 MB | сейчас 1222032 MB
+
+########## CELL 21 ##########
+  [cyclic_core] итерация 1: рёбер 1,245,790, вершин 119,995
+
+Счетов, лежащих на циклах: 119,995 (100.0% от графа)
+Повторяющихся связей (n_txn >= 2): 181,107
+Счетов в циклах по повторяющимся связям: 43,508
+[mem] peak RSS = 1209 MB | сейчас 1227296 MB
+
+########## CELL 22 ##########
+Вершины, лежащие на циклах: ['A', 'B', 'C', 'D', 'E']
+Ожидаем ['A', 'B', 'C', 'D', 'E']: F отшелушится первым — у него нет
+входящих рёбер, а значит на цикле он лежать не может.
+[mem] peak RSS = 1209 MB | сейчас 1227296 MB
+
+########## CELL 24 ##########
+[save_fig] figures/19_graph_cycle_fragment.png
+[mem] peak RSS = 1209 MB | сейчас 1224628 MB
+
+########## CELL 25 ##########
+[pagerank] сошёлся за 52 итераций
+  [cyclic_core] итерация 1: рёбер 1,245,790, вершин 119,995
+[graph] рёбер в train: 1,245,826 | счетов в графе: 120,000
+[graph] циклическое ядро (полный граф): 119,995 счетов (100.00%)
+[graph] граф networkx для SCC: 119,874 узлов, 400,000 рёбер (топ-400,000 по обороту)
+[graph] счетов в циклах: 119,995 | в циклах по повторяющимся связям: 43,508 | взаимных пар: 110
+
+Граф-признаков: 14
+            признак  max_lift  min_lift           корзина_макс
+0  g_out_amount_sum    2.3881    0.4456  (27264.98, 4984995.5]
+1      g_out_degree    1.2251    0.8595           (13.0, 24.0]
+2    g_total_degree    1.1711    0.8361           (25.0, 41.0]
+3        g_pagerank    1.0786    0.8775   (9.86e-06, 1.16e-05]
+4   g_in_amount_sum    1.0695    0.9163  (26308.35, 4990775.5]
+5       g_in_degree    1.0513    0.9149           (11.0, 13.0]
+[mem] peak RSS = 1674 MB | сейчас 1308688 MB
+
+########## CELL 27 ##########
+Parquet: 9,504,852 строк, 20 row groups
+Читаем row groups: [0, 10] из 20
+Выборка для проверок: 1,000,000 строк | память 262 MB
+Признаков: 62 | base rate в выборке: 0.1036%
+[check_feature_leakage] OK: признаков с |corr| > 0.9 нет. Максимальная |corr| = 0.268
+[mem] peak RSS = 1974 MB | сейчас 2021816 MB
+
+########## CELL 28 ##########
+Признаки с пропусками (% строк):
+пропусков нет
+
+Константных признаков: 4 ['g_in_cycle', 'g_core_component_size', 'g_component_size', 'g_receiver_in_cycle']
+(Константы нужно выбросить: модель не сможет по ним ничего выучить.)
+[mem] peak RSS = 2034 MB | сейчас 2022104 MB
+
+########## CELL 29 ##########
+                      признак  max_lift  min_lift             корзина_макс
+0           vel_amount_sum_1h    4.7732    0.0000     (1784.39, 4891480.5]
+1           vel_amount_sum_6h    4.7636    0.0000    (1913.422, 4891480.5]
+2          vel_amount_sum_24h    4.7109    0.0000    (2248.172, 4891480.5]
+3    vel_amount_24h_to_median    4.6870    0.0000       (4.525, 12047.665]
+4      amount_pct_in_currency    4.3836    0.0000           (80.08, 100.0]
+5                  amount_log    4.3755    0.0000           (7.47, 15.403]
+6     amount_to_sender_median    4.3419    0.0000       (3.526, 12047.665]
+7   amount_to_receiver_median    4.3275    0.0000       (3.522, 10934.936]
+8        amount_zscore_sender    4.3275    0.0000        (0.132, 1804.037]
+9         vel_amount_sum_168h    4.3179    0.0000    (5259.676, 4891480.5]
+10       amount_to_sender_max    4.2077    0.0144         (0.129, 450.256]
+11           pair_amount_mean    3.1055    0.0000    (1736.032, 4891480.5]
+12            pair_amount_sum    2.8946    0.0096    (5258.492, 4891480.5]
+13           g_out_amount_sum    2.3963    0.4936  (107391.641, 5094452.0]
+14          payment_type_code    2.3677    0.4359               (7.0, 8.0]
+15             vel_count_168h    2.3356    0.6673              (3.0, 25.0]
+16         sender_mean_amount    2.2908    0.5368   (1875.023, 102945.062]
+17  sender_txn_per_active_day    2.1211    0.6356           (1.154, 1.565]
+18       sender_median_amount    1.7589    0.5751       (609.83, 1821.355]
+19                 pair_count    1.7406    0.0000            (-0.001, 1.0]
+20     receiver_median_amount    1.6151    0.6230        (609.95, 1947.96]
+21               g_out_degree    1.5530    0.6915             (38.0, 60.0]
+22         sender_n_receivers    1.5530    0.6915             (38.0, 60.0]
+23           sender_txn_count    1.4977    0.6061             (62.0, 93.0]
+24          sender_std_amount    1.4569    0.5703     (4268.714, 710858.5]
+[save_fig] figures/20_feature_lift_ranking.png
+[mem] peak RSS = 2034 MB | сейчас 1601488 MB
+
+########## CELL 30 ##########
+[save_fig] figures/21_feature_correlations.png
+Пар с |corr| > 0.9: 30
+  amount_log ~ amount_pct_in_currency: 0.978
+  sender_txn_count ~ sender_active_days: 0.944
+  sender_mean_amount ~ sender_std_amount: 0.99
+  sender_mean_amount ~ sender_max_amount: 0.982
+  sender_mean_amount ~ sender_share_above_threshold: 0.955
+  sender_mean_amount ~ g_out_amount_sum: 0.987
+  sender_std_amount ~ sender_max_amount: 0.998
+  sender_std_amount ~ sender_share_above_threshold: 0.972
+  sender_std_amount ~ g_out_amount_sum: 0.986
+  sender_max_amount ~ sender_share_above_threshold: 0.973
+  sender_max_amount ~ g_out_amount_sum: 0.987
+  sender_n_receivers ~ g_out_degree: 1.0
+  sender_share_above_threshold ~ g_out_amount_sum: 0.957
+  amount_to_sender_median ~ amount_to_receiver_median: 0.973
+  amount_to_sender_median ~ vel_amount_sum_1h: 0.975
+  amount_to_sender_median ~ vel_amount_sum_6h: 0.972
+  amount_to_sender_median ~ vel_amount_sum_24h: 0.949
+  amount_to_sender_median ~ vel_amount_24h_to_median: 0.975
+  amount_to_receiver_median ~ vel_amount_sum_1h: 0.982
+  amount_to_receiver_median ~ vel_amount_sum_6h: 0.979
+[mem] peak RSS = 2134 MB | сейчас 1601504 MB
+
+########## CELL 31 ##########
+строк_в_матрице           : 9504852
+признаков                 : 62
+граф_рёбер_train          : 1245826
+граф_счетов               : 120000
+счетов_в_циклах           : 119995
+счетов_в_циклах_повтор    : 43508
+взаимных_пар              : 110
+признаков_с_lift_2+       : 18
+константных_признаков     : 4
+макс_corr_с_таргетом      : 0.2679
+ПОЯСНЕНИЕ К КОНСТАНТАМ: граф-признаки g_in_cycle / g_component_size /
+g_core_component_size / g_receiver_in_cycle выродились в константы — в синтетическом
+графе получатели выбираются почти случайно, поэтому он плотный и цикл есть у всех.
+Код корректен (проверен на игрушечном графе), на реальных данных метрика избирательна.
+
+[x] Разбиение по времени train/val/test + проверка на утечку
+[x] Транзакционные признаки (сумма, порог, время, канал, география)
+[x] Поведенческие профили: FIT на train -> APPLY ко всем периодам
+[x] Демонстрация, чем опасен профиль, посчитанный по всем данным
+[x] Velocity на скользящих окнах + сверка векторного расчёта с брутфорсом
+[x] Парные признаки (новая пара / накатанная дорожка)
+[x] Граф-признаки: степени, PageRank, циклы, компоненты, взаимные пары
+[x] Потоковая сборка 9.5 млн строк в parquet (чанками)
+[x] Контроль качества: утечки, пропуски, константы, lift-рейтинг
+[x] data/features/features_full.parquet готов к Этапу 3-4
+
+ЭТАП 2 ГОТОВ. Дальше: Этап 3 — Rule-based baseline (красные флаги).
+[mem] peak RSS = 2134 MB | сейчас 1601504 MB
+
+=== ALL CELLS OK ===
+EXIT=0
