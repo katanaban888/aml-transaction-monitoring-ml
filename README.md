@@ -37,11 +37,17 @@ notebooks/       01_eda · 02_feature_engineering · 03_rule_based_baseline
                  04_ml_modeling · 05_evaluation_shap
 src/             data_loader    — чтение, типы, парсинг дат, кэш parquet
                  eda_utils      — lift-таблицы, z-тест двух долей, сохранение графиков
+                 split          — разбиение по времени + детектор утечек
                  synthetic_data — генератор SAML-D-подобных данных со всеми 17 типологиями
-                 features · graph_features · rules · train · evaluate
+                 features       — транзакционные, поведенческие, velocity- и парные признаки
+                 graph_features — степени, PageRank, циклы, компоненты связности
+                 build_features — CLI: потоковая сборка матрицы на всех 9.5 млн строк
+                 rules          — справочник правил «красных флагов» и их метрики
+                 train · evaluate
 streamlit_app/   app.py — дашборд аналитика
 models/          обученные модели
 reports/         figures/ · eda_findings.md · reference_run_synthetic/
+data/features/   features_full.parquet (9.5 млн x 62) + обученные «линейки» FIT
 tests/           test_synthetic_pipeline.py — дымовой тест конвейера
 ```
 
@@ -76,17 +82,41 @@ tests/           test_synthetic_pipeline.py — дымовой тест конв
 |---|---|---|
 | Чтение CSV (900 МБ) + типы + парсинг дат + запись кэша | ~45 c | пик ~3.4 ГБ, сам фрейм 0.53 ГБ |
 | Прогон всех 49 ячеек EDA | ~4 мин | пик ~3.35 ГБ |
+| Сборка матрицы признаков (`python -m src.build_features`) | ~90 с | пик ~2.8 ГБ |
+| Прогон тетрадки Этапа 2 (включая сборку) | ~4 мин | пик ~2.2 ГБ |
 
-На машине с 16 ГБ всё проходит свободно; при 8 ГБ — тоже. Если памяти меньше 4 ГБ,
-запускайте EDA на сэмпле: `df = load_dataset(nrows=2_000_000)`.
+Матрица 9.5 млн x 62 признака занимает 932 МБ в parquet — в память она целиком не
+загружается: признаки считаются чанками по 500 тыс. строк и сразу дописываются
+в файл (`src/build_features.py`). На машине с 16 ГБ всё проходит свободно; при
+8 ГБ — тоже. Если памяти меньше 4 ГБ, запускайте EDA на сэмпле:
+`df = load_dataset(nrows=2_000_000)`.
+
+## Как воспроизвести Этап 2
+
+```bash
+source venv/bin/activate
+python -m src.build_features                 # матрица признаков, ~90 с
+#   или с другими параметрами:
+python -m src.build_features --chunk-size 250000 --max-edges 100000 --no-graph
+jupyter notebook notebooks/02_feature_engineering.ipynb   # разбор каждого признака
+python tests/test_synthetic_pipeline.py      # 9 проверок конвейера, ~10 с
+```
+
+Вывод эталонных прогонов: `reports/reference_run_synthetic/stage2_findings.md`
+и `stage3_findings.md`.
 
 ## Прогресс
 
 - [x] Этап 0 — репозиторий, venv (Python 3.11), зависимости, датасет
 - [x] Этап 1 — EDA: дисбаланс, типологии, structuring-тест у порога $10 000,
       velocity/inter-arrival, коридоры, fan-in/fan-out, качество данных
-- [ ] Этап 2 — Feature Engineering (транзакционные, поведенческие, velocity, graph)
-- [ ] Этап 3 — Rule-based baseline (красные флаги)
+- [x] Этап 2 — Feature Engineering: 62 признака (транзакционные, поведенческие,
+      velocity, парные, граф), FIT на train, потоковая сборка 9.5 млн строк,
+      контроль утечек. Топ lift: vel_amount_sum_1h 4.77, amount_log 4.38,
+      g_out_amount_sum 2.40
+- [x] Этап 3 — Rule-based baseline: 13 правил, лучший набор — recall 33.7 %
+      при 0.44 % трафика (lift 76). Слепые зоны: Smurfing, Bipartite,
+      Gather-Scatter, Stacked Bipartite — 0 % (обоснование для ML)
 - [ ] Этап 4 — ML-модели (дисбаланс, XGBoost/LightGBM, tuning, калибровка)
 - [ ] Этап 5 — Evaluation, SHAP, бизнес-метрики
 - [ ] Этап 6 — Streamlit-дашборд
