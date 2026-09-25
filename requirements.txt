@@ -12,3 +12,6 @@ streamlit==1.35.0
 jupyter==1.0.0
 imbalanced-learn==0.12.3
 joblib==1.4.2
+# быстрый кэш данных: src/data_loader.py сохраняет подготовленный датафрейм в parquet.
+# Если pyarrow не установлен — автоматически используется pickle (.pkl), просто медленнее.
+pyarrow==16.1.0
